@@ -11,24 +11,28 @@ ctx.verify_mode = ssl.CERT_NONE
 
 url = 'https://online.dr-chuck.com/' # - source for parse
 
-def opened_url(url):
-    html = urlopen(url, context=ctx).read()
-    soup = BeautifulSoup(html, "html.parser")
-    return soup
+class Parser:
+    def __init__(self, url):
+        self.url = url
 
-def get_headers(soup): # func for giving header of courses
-    result = [tag.get_text() for tag in soup('h3')]
-    return result
+    def load_url(self):
+        html = urlopen(self.url, context=ctx).read()
+        self.soup = BeautifulSoup(html, "html.parser")
 
-def get_links(soup): # func for giving links on courses
-    directory = soup.select('div.span4 > a')
-    result = [i.get('href') for i in directory]
-    return result
+    def get_headers(self): # func for giving header of courses
+        result1 = [tag.get_text() for tag in self.soup('h3')]
+        return result1
+
+    def get_links(self): # func for giving links on courses
+        directory = self.soup.select('div.span4 > a')
+        result2 = [i.get('href') for i in directory]
+        return result2
 
 
-soup = opened_url(url)
-links = get_links(soup)
-headers = get_headers(soup)
+p = Parser(url)
+p.load_url()
+links = p.get_links()
+headers = p.get_headers()
 
 print(f'Connecting to: {url} ...\n')
 
