@@ -12,6 +12,7 @@ ctx.verify_mode = ssl.CERT_NONE
 
 url = 'https://online.dr-chuck.com/' # - source for parse
 
+# opening source and getting links and headers
 class Parser:
     def __init__(self, url):
         self.url = url
@@ -32,8 +33,7 @@ class Parser:
 
 p = Parser(url)
 p.load_url()
-links = p.get_links()
-headers = p.get_headers()
+
 
 print(f'Connecting to: {url} ...\n')
 
@@ -50,36 +50,46 @@ except FileNotFoundError: #  do if file not exist
 cur = conn.cursor()
 
 # creating a table
-cur.executescript('''
+cur.executescript(f'''
 DROP TABLE IF EXISTS Courses;
+DROP TABLE IF EXISTS Links;
 
 CREATE TABLE Courses (
-    id  INTEGER PRIMARY KEY,
-    course_name    TEXT UNIQUE,
+    id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_name    TEXT UNIQUE
+);
+
+CREATE TABLE Links (
+    id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    courses_id  INTEGER,
     link    TEXT UNIQUE
 );
 
 ''')
 
+
 # fill out the table
-num = 0
-while True:
-    cur.execute('''INSERT OR REPLACE INTO Courses
-            (id, course_name, link) 
-            VALUES ( ?, ?, ? )''',
-            (num+1,headers[num],links[num]))
+def fill_the_table(headers, links):
+    num = 0
+    while True:
+        cur.execute('''INSERT OR IGNORE INTO Courses
+                (course_name) 
+                VALUES (?)''',
+                (headers[num],))
+        cur.execute('SELECT id FROM Courses WHERE course_name = ? ', (headers[num],))
+        course_id = cur.fetchone()[0]
+        cur.execute('''INSERT OR IGNORE INTO Links
+                    (courses_id, link) 
+                    VALUES ( ?, ? )''',
+                    (course_id, links[num],))
 
-    num += 1
-    if len(links) <= num: break
 
-conn.commit()
+        num += 1
+        if len(links) <= num: break
+
+    conn.commit()
+
+fill_the_table(p.get_headers(),p.get_links())
 
 print(f'File "{fname}" is done. You can open and read with SQLiteDatabaseBrowserPortable.exe.')
-
-
-
-
-
-
-
 
