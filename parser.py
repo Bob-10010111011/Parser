@@ -40,56 +40,58 @@ print(f'Connecting to: {url} ...\n')
 fname = input('Enter the file name: ')+'.db'
 
 
-try: # do if file exist
-    conn = sqlite3.connect(fname)
-
-except FileNotFoundError: #  do if file not exist
-    print(f'File not found. Creating new file: {fname}\n')
-    conn = sqlite3.connect(fname)
-
-cur = conn.cursor()
-
-# creating a table
-cur.executescript(f'''
-DROP TABLE IF EXISTS Courses;
-DROP TABLE IF EXISTS Links;
-
-CREATE TABLE Courses (
-    id  INTEGER PRIMARY KEY AUTOINCREMENT,
-    course_name    TEXT UNIQUE
-);
-
-CREATE TABLE Links (
-    id  INTEGER PRIMARY KEY AUTOINCREMENT,
-    courses_id  INTEGER,
-    link    TEXT UNIQUE
-);
-
-''')
-
-
 # fill out the table
-def fill_the_table(headers, links):
-    num = 0
-    while True:
-        cur.execute('''INSERT OR IGNORE INTO Courses
-                (course_name) 
-                VALUES (?)''',
-                (headers[num],))
-        cur.execute('SELECT id FROM Courses WHERE course_name = ? ', (headers[num],))
-        course_id = cur.fetchone()[0]
-        cur.execute('''INSERT OR IGNORE INTO Links
-                    (courses_id, link) 
-                    VALUES ( ?, ? )''',
-                    (course_id, links[num],))
+class Database:
+    def __init__(self, headers, links):
+        try:  # do if file exist
+            self.conn = sqlite3.connect(fname)
+
+        except FileNotFoundError:  # do if file not exist
+            print(f'File not found. Creating new file: {fname}\n')
+            self.conn = sqlite3.connect(fname)
+
+        self.headers = headers
+        self.links = links
+        self.cur = self.conn.cursor()
 
 
-        num += 1
-        if len(links) <= num: break
+    # creating a table
+        self.cur.executescript('''
+            DROP TABLE IF EXISTS Courses;
+            DROP TABLE IF EXISTS Links;
+        
+            CREATE TABLE Courses (
+                id  INTEGER PRIMARY KEY AUTOINCREMENT,
+                course_name    TEXT UNIQUE
+            );
+        
+            CREATE TABLE Links (
+                id  INTEGER PRIMARY KEY AUTOINCREMENT,
+                courses_id  INTEGER,
+                link    TEXT UNIQUE
+            );
+        ''')
 
-    conn.commit()
 
-fill_the_table(p.get_headers(),p.get_links())
+    def fill_the_table(self):
+        for name, link in zip(self.headers, self.links):
+            self.cur.execute('''INSERT OR IGNORE INTO Courses
+                    (course_name) 
+                    VALUES (?)''',
+                        (name,))
+            self.cur.execute('SELECT id FROM Courses WHERE course_name = ? ', (name,))
+            course_id = self.cur.fetchone()[0]
+            self.cur.execute('''INSERT OR IGNORE INTO Links
+                        (courses_id, link) 
+                        VALUES ( ?, ? )''',
+                        (course_id, link,))
+        self.conn.commit()
+
+
+
+db = Database(p.get_headers(),p.get_links())
+db.fill_the_table()
+
 
 print(f'File "{fname}" is done. You can open and read with SQLiteDatabaseBrowserPortable.exe.')
 
