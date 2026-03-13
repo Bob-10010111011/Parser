@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import urllib.request, urllib.error
 from urllib.request import urlopen
 import ssl
+import sqlite3
 
 
 # Ignore errors of SSL-certificate
@@ -36,31 +37,44 @@ headers = p.get_headers()
 
 print(f'Connecting to: {url} ...\n')
 
+fname = input('Enter the file name: ')+'.db'
 
-fname = input('Enter the file name: ')+'.txt'
 
 try: # do if file exist
-    with open(fname) as f:
-        old_text = f.read()
-    with open(fname,'w') as f:
-        f.write(old_text + '\n') # rewrite file
-
+    conn = sqlite3.connect(fname)
 
 except FileNotFoundError: #  do if file not exist
     print(f'File not found. Creating new file: {fname}\n')
-    with open(fname, 'w') as f:
-        pass
+    conn = sqlite3.connect(fname)
 
-with open(fname, 'a') as f:
-    num = 0
-    while True:
-        f.write(f'Number of course: {num + 1}\n')
-        f.write(f'Name of course: {headers[num]}\n')
-        f.write(f'Link: {links[num]}\n\n')
-        num += 1
-        if len(links) <= num: break
+cur = conn.cursor()
 
-print(f'File "{fname}" is done. You can open and read.')
+# creating a table
+cur.executescript('''
+DROP TABLE IF EXISTS Courses;
+
+CREATE TABLE Courses (
+    id  INTEGER PRIMARY KEY,
+    course_name    TEXT UNIQUE,
+    link    TEXT UNIQUE
+);
+
+''')
+
+# fill out the table
+num = 0
+while True:
+    cur.execute('''INSERT OR REPLACE INTO Courses
+            (id, course_name, link) 
+            VALUES ( ?, ?, ? )''',
+            (num+1,headers[num],links[num]))
+
+    num += 1
+    if len(links) <= num: break
+
+conn.commit()
+
+print(f'File "{fname}" is done. You can open and read with SQLiteDatabaseBrowserPortable.exe.')
 
 
 
