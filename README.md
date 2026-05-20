@@ -1,3 +1,4 @@
+
 Course Scraper & Database Builder
 A small ETL‑style Python project that downloads course data from online.dr-chuck.com, parses it, stores it in SQLite, and manages output files with conflict‑safe renaming and directory handling.
 
@@ -57,3 +58,4 @@ Install dependencies:
 
 License
 MIT License.
+
